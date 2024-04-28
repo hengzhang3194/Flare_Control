@@ -1,0 +1,295 @@
+--- # 这是一个样例配置文件，主要用来展示配置文件的格式和用法。用于b1.1.0版本。配置文件内默认全部使用SI单位。
+  logger: # 关于Logger的设置
+    type: "CommandLine" # 选项有：CommandLine, File。目前CommandLine就可以。
+    log_file: "out.log" # 如果type为File，需要指定文件。
+    log_level: "Info" # 选项有：Debug, Info, Warn, Error, Fatal。一般Info就行，Debug的时候用Debug。
+
+  world: # 关于世界的设置
+    gravity: # 重力。比如这样为z轴负方向为重力方向。
+      - 0.0
+      - 0.0
+      - -9.81
+    export_dir: "output" # 输出文件夹根目录路径。这个路径可以是以当前配置文件为基准的相对路径（如当前这样），或者是一个绝对路径。
+
+  robotics: # 关于机器人系统（机器人目前都是铰接刚体）
+    export: # 机器人系统的输出设置
+      enabled: false # true/false，选择是否开启机器人系统输出。不写默认为true。
+      type: "SingleFrameVtk" # 选项有: AnimationFbx, SingleFrameVtk。目前选择SingleFrameVtk。
+    skeletons: # Skeleton代表铰接刚体。这里是Skeleton的列表。
+      - file_path: "p600.urdf" # 指定Skeleton文件路径，同样是基于当前文件的相对路径或者是绝对路径。目前支持urdf以及sdf格式。
+        initial_position: # Skeleton的初始位置。可以删除，默认是0，0，0。
+          - 0.0
+          - 0.0
+          - 0.0
+        initial_rotation: # Skeleton的初始旋转。以AngleAxis的形式指定，即绕某个轴旋转指定弧度。
+          axis: # 旋转轴
+            - 1.0
+            - 0.0
+            - 0.0
+          angle_radians: 0.0 # 旋转角度，单位为弧度（radian）
+      - file_path: "floor.urdf" # 这是另一个Skeleton的文件路径
+        # 使用默认初始位置
+
+  fluid: # 关于流体的设置
+    blocks: # 关于block的设置
+      max_block_count: 512 # 最大Block数量，如果仿真范围较大则可以调大。会占用更多显存。
+      block_hash_table_size: 1024 # 建议设置为上面数值的两倍，必须是2的幂（1024、2048、4096、8192等）。
+      block_resolution: # 单个Block的分辨率。默认就行。
+        - 25
+        - 25
+        - 25
+      update_interval: 5 # 默认就行。
+      need_border_size: 5 # 默认就行。
+      create_criteria_type: "VelocityMagnitude" # 选项有：VelocityMagnitude, VorticityMagnitude。默认就行。
+      low_demand_need_criteria: 3.0 # 数字越接近0，效率越低，范围越大。默认就行。
+      high_demand_need_criteria: 5.0 # 同上，默认就行。
+      create_jacobi_iterations: 100 # 默认就行。
+    fluid:
+      unit_length: 0.02 # 流体仿真的空间分辨率，单位是米。对于小型无人机1cm差不多。
+      unit_time: 0.0001 # 流体仿真的时间分辨率，单位是秒。如果分辨率过低会导致仿真不稳定。
+      initial_density: 1.225 # 流体的初始密度，目前是空气密度。
+      initial_velocity: # 流体的初始速度。目前不为0的情况没有测试过。
+        - 0.0
+        - 0.0
+        - 0.0
+      kinematic_shear_viscosity: 1.8e-5 # 流体的粘度。目前是空气粘度。
+    export: # 流体的导出设置
+      enabled: true # true/false，是否开启流体输出。不写默认为true。
+      type: "LimitedRangeVtk" # 选项有: FullDataVdb, LimitedRangeVtk。默认就行。
+      resolution: # 导出流体的尺寸。
+        - 100
+        - 100
+        - 100
+      down_sample_factor: 0 # 导出流体降采样倍率。0代表不降采样。
+      center_target_name: "mavic3" # 导出流体范围的中心物体Skeleton名字。
+
+  coupling: # 关于机器人与流体的耦合的设置
+    coupling: # 关于耦合本身的设置
+      target_sample_area_lbm: 1.0 # 表面采样的尺寸，默认就行
+      sample_seed: 114514 # 随机采样的种子，默认就行
+      pre_sample_multiplier: 10.0 # 默认就行
+      estimated_disk_fill_rate: 0.35 # 对于1cm分辨率的小型无人机，默认就行
+      two_way_coupling: true # 开启双向耦合。如果设为false，则机器人不受流体的力。
+      use_visual: true # 使用物体的视觉模型耦合，而不使用碰撞模型耦合。
+      correct_iterations: 1 # 默认就行
+      spread_kernel: "Phi2" # 可选项: Nearest, Phi2, Phi4Fast。默认就行。
+      block_search_range_size: # 默认就行
+        - 16
+        - 16
+        - 16
+      create_border_size: 5 # 默认就行
+      slip_ratio: 0.0 # 默认就行
+      max_velocity_difference_lbm_per_step: 0.02 # 数值越低仿真越稳定。默认就行。
+      search_center_skeleton_name: "p600" # 中心Skeleton名字。
+    export: # 导出设置
+      enabled: true # true/false，开启表面coupling输出。
+      type: "Vtk" # 可选项: Vtk。
+
+  virtual_propellers: # 虚拟螺旋桨设置。
+    coupling: # 关于耦合的设置
+      target_line_section_width_lbm: 0.2 # 默认就行。
+      two_way_coupling: true # 是否开启双向耦合。
+      sub_steps: 1 # 默认就行
+      spread_kernel: "Phi4Fast" # 选项有：Nearest, Phi2, Phi4Fast。建议默认。
+      block_search_range_size: # 默认就行
+        - 16
+        - 16
+        - 16
+      create_border_size: 5 # 默认就行
+      max_force_lbm: 15.0 # 默认就行，相当于不做限制
+      search_center_target_skeleton_name: "p600" # 中心物体Skeleton名字
+      airfoil_slice_models: # 定义一系列Airfoil模型
+        - name: "mh60" # Airfoil模型名字（唯一）
+          cl_vs_angle_of_attack: # 升力系数vs攻角映射关系曲线（采用关键帧间线性插值）（攻角正值代表前高后低，负值代表前低后高）
+            - aoa: -3.14159
+              cl: -0.03
+            - aoa: -3.00197
+              cl: 0.08
+            - aoa: -0.139626
+              cl: -0.08
+            - aoa: 0.20944
+              cl: 0.18
+            - aoa: 2.93215
+              cl: -0.18
+            - aoa: 3.14159
+              cl: -0.03
+          cd_vs_angle_of_attack: # 阻力系数vs攻角映射关系曲线
+            - aoa: -3.14159
+              cd: 0.015
+            - aoa: -1.5708
+              cd: 0.3
+            - aoa: -0.10472
+              cd: 0.03
+            - aoa: -0.0698132
+              cd: 0.015
+            - aoa: 0.139626
+              cd: 0.015
+            - aoa: 0.174533
+              cd: 0.02
+            - aoa: 1.5708
+              cd: 0.3
+            - aoa: 3.14159
+              cd: 0.015
+      blade_models: # 定义一系列翼片模型
+        - name: "default-blade" # 翼片模型名字（唯一）
+          length: 0.195 # 翼片长度
+          slice_vs_normalized_position: # 翼片从根部开始的形状曲线。关键帧间采用线性插值。
+            - normalized_position: 0.1 # 翼片从根部开始的相对位置。0代表根部，1代表尖端。
+              slice: # 翼片在此位置的切片描述
+                airfoil_model: "mh60" # 切片的Airfoil模型名字 （引用上方定义）
+                chord: 0.011 # 切片Airfoil的弦长（前缘到后缘的直线距离）
+                angle: 0.0 # 切片Airfoil的初始攻角（正值代表前高后低，负值代表前低后高）
+            - normalized_position: 0.4
+              slice:
+                airfoil_model: "mh60"
+                chord: 0.27
+                angle: 0.244346
+            - normalized_position: 0.7
+              slice:
+                airfoil_model: "mh60"
+                chord: 0.27
+                angle: 0.244346
+            - normalized_position: 1.0
+              slice:
+                airfoil_model: "mh60"
+                chord: 0.012
+                angle: 0.10472
+      propeller_models: # 定义一系列螺旋桨模型
+        - name: "propeller-cw" # 螺旋桨模型名字（唯一）
+          blades: 2 # 螺旋桨翼片数（桨数）
+          blade_model: "default-blade" # 螺旋桨翼片模型名字（引用上方定义）
+          direction: "Reversed" # 可选项：Forward, Reversed。螺旋桨方向。Forward代表按照上方向左右手定则的方向，Reversed反之。左右手定则的选择取决于左右手系。
+        - name: "propeller-ccw"
+          blades: 2
+          blade_model: "default-blade"
+          direction: "Forward"
+      configurations: # 定义一系列虚拟螺旋桨配置
+        - target_skeleton_name: "p600" # 螺旋桨属于的Skeleton的名字
+          target_joint_name: "p600__rotor_0_joint" # 螺旋桨所属的关节（Joint）的名字。注意，这个Joint必须是可以自由转动的Joint。
+          center_offset: 0.0 # 螺旋桨中心在旋转轴上的位置。
+          model: "propeller-ccw" # 螺旋桨的建模名字（引用上方定义）
+        - target_skeleton_name: "p600"
+          target_joint_name: "p600__rotor_1_joint"
+          center_offset: 0.0
+          model: "propeller-ccw"
+        - target_skeleton_name: "p600"
+          target_joint_name: "p600__rotor_2_joint"
+          center_offset: 0.0
+          model: "propeller-cw"
+        - target_skeleton_name: "p600"
+          target_joint_name: "p600__rotor_3_joint"
+          center_offset: 0.0
+          model: "propeller-cw"
+    export: # 虚拟螺旋桨的导出设置
+      type: "Vtk" # 可选项: Vtk
+
+  actuators: # 具体说明见actuators.md
+    - type: "DcMotor"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_bl"
+      name: "bl"
+      model:
+        stall_torque: 0.15
+        zero_load_rpm: 15000.0
+      rotation_direction: "Forward" # Options: Forward, Reversed
+    - type: "DcMotor"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_br"
+      name: "br"
+      model:
+        stall_torque: 0.15
+        zero_load_rpm: 15000.0
+      rotation_direction: "Reversed" # Options: Forward, Reversed
+    - type: "DcMotor"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_fl"
+      name: "fl"
+      model:
+        stall_torque: 0.15
+        zero_load_rpm: 15000.0
+      rotation_direction: "Reversed" # Options: Forward, Reversed
+    - type: "DcMotor"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_fr"
+      name: "fr"
+      model:
+        stall_torque: 0.15
+        zero_load_rpm: 15000.0
+      rotation_direction: "Forward" # Options: Forward, Reversed
+    - type: "Follow"
+      follower_skeleton_name: "floor"
+      followed_target_skeleton_name: "mavic3"
+      name: "floor_controller"
+      constraint: "Plane" # Options: Free, Plane, Line
+      plane_origin:
+        - 0.0
+        - 0.0
+        - 0.0
+      plane_normal:
+        - 0.0
+        - 0.0
+        - 1.0
+
+  sensors: # 具体说明见sensors.md
+    - type: "BodyNode"
+      skeleton_name: "mavic3"
+      body_node_name: "body"
+      name: "imu"
+      up_axis: "ZPositive"
+      forward_axis: "YPositive"
+    - type: "Force"
+      skeleton_name: "mavic3"
+      body_node_name: "bl"
+      name: "force_bl"
+      averaging_period: 0.005
+      force_axis_local:
+        - 0.0
+        - 0.0
+        - 1.0
+    - type: "Force"
+      skeleton_name: "mavic3"
+      body_node_name: "br"
+      name: "force_br"
+      averaging_period: 0.005
+      force_axis_local:
+        - 0.0
+        - 0.0
+        - 1.0
+    - type: "Force"
+      skeleton_name: "mavic3"
+      body_node_name: "fl"
+      name: "force_fl"
+      averaging_period: 0.005
+      force_axis_local:
+        - 0.0
+        - 0.0
+        - 1.0
+    - type: "Force"
+      skeleton_name: "mavic3"
+      body_node_name: "fr"
+      name: "force_fr"
+      averaging_period: 0.005
+      force_axis_local:
+        - 0.0
+        - 0.0
+        - 1.0
+    - type: "Joint"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_bl"
+      name: "joint_bl"
+      mode: "Velocity" # Options: Position, Velocity, Acceleration
+    - type: "Joint"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_br"
+      name: "joint_br"
+      mode: "Velocity" # Options: Position, Velocity, Acceleration
+    - type: "Joint"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_fl"
+      name: "joint_fl"
+      mode: "Velocity" # Options: Position, Velocity, Acceleration
+    - type: "Joint"
+      skeleton_name: "mavic3"
+      joint_name: "body_to_fr"
+      name: "joint_fr"
+      mode: "Velocity" # Options: Position, Velocity, Acceleration
